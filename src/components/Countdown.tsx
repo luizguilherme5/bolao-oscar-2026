@@ -52,12 +52,12 @@ export default function Countdown() {
     <div className="flex gap-3 justify-center">
       {blocks.map((block) => (
         <div key={block.label} className="flex flex-col items-center">
-          <div className="glass-card-bright rounded-xl w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center animate-pulse-glow">
-            <span className="text-2xl sm:text-3xl font-display text-golden">
+          <div className="card-elevated w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center">
+            <span className="text-2xl sm:text-3xl font-extrabold text-amber-500">
               {String(block.value).padStart(2, "0")}
             </span>
           </div>
-          <span className="text-xs sm:text-sm text-white/60 mt-1 font-body font-semibold uppercase tracking-wider">
+          <span className="text-[11px] sm:text-xs text-zinc-500 mt-1.5 font-semibold uppercase tracking-wider">
             {block.label}
           </span>
         </div>

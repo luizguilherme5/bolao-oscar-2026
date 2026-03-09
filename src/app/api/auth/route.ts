@@ -24,11 +24,12 @@ export async function POST(request: NextRequest) {
       session.userId = user.id;
       session.userName = user.name;
       session.userEmail = user.email;
+      session.isAdmin = user.isAdmin;
       session.isLoggedIn = true;
       await session.save();
 
       return NextResponse.json({
-        user: { id: user.id, name: user.name, email: user.email },
+        user: { id: user.id, name: user.name, email: user.email, isAdmin: user.isAdmin },
       });
     }
 
@@ -42,11 +43,12 @@ export async function POST(request: NextRequest) {
     session.userId = user.id;
     session.userName = user.name;
     session.userEmail = user.email;
+    session.isAdmin = user.isAdmin;
     session.isLoggedIn = true;
     await session.save();
 
     return NextResponse.json({
-      user: { id: user.id, name: user.name, email: user.email },
+      user: { id: user.id, name: user.name, email: user.email, isAdmin: user.isAdmin },
     });
   } catch (err) {
     console.error("Auth error:", err);
@@ -67,6 +69,7 @@ export async function GET() {
         id: session.userId,
         name: session.userName,
         email: session.userEmail,
+        isAdmin: session.isAdmin || false,
       },
     });
   } catch {

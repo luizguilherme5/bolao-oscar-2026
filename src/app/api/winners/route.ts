@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isAdminPassword } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { getKV } from "@/lib/kv";
 
 export const dynamic = "force-dynamic";
@@ -16,12 +16,12 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { password, categoryId, nomineeId } = await request.json();
-
-    if (!isAdminPassword(password)) {
-      return NextResponse.json({ error: "Senha incorreta!" }, { status: 403 });
+    const session = await getSession();
+    if (!session.isAdmin) {
+      return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
     }
 
+    const { categoryId, nomineeId } = await request.json();
     const kv = await getKV();
     const winners = (await kv.get<Record<string, string>>("winners")) || {};
     winners[categoryId] = nomineeId;
@@ -35,12 +35,12 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const { password, categoryId } = await request.json();
-
-    if (!isAdminPassword(password)) {
-      return NextResponse.json({ error: "Senha incorreta!" }, { status: 403 });
+    const session = await getSession();
+    if (!session.isAdmin) {
+      return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
     }
 
+    const { categoryId } = await request.json();
     const kv = await getKV();
     const winners = (await kv.get<Record<string, string>>("winners")) || {};
     delete winners[categoryId];

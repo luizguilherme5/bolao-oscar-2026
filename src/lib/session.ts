@@ -5,6 +5,7 @@ export interface SessionData {
   userId?: string;
   userName?: string;
   userEmail?: string;
+  isAdmin?: boolean;
   isLoggedIn: boolean;
 }
 

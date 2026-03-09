@@ -3,23 +3,14 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import Confetti from "@/components/Confetti";
 import Countdown from "@/components/Countdown";
-import { funPhrases } from "@/lib/data";
+import { Trophy, ChevronRight, Users, Calendar, Film, Award } from "lucide-react";
 import type { RankingEntry } from "@/app/api/ranking/route";
 
 export default function Home() {
-  const [phrase, setPhrase] = useState(funPhrases[0]);
   const [topRanking, setTopRanking] = useState<RankingEntry[]>([]);
   const [user, setUser] = useState<{ name: string } | null>(null);
   const [participantCount, setParticipantCount] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setPhrase(funPhrases[Math.floor(Math.random() * funPhrases.length)]);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     fetch("/api/auth").then((r) => r.json()).then((d) => {
@@ -33,183 +24,171 @@ export default function Home() {
     });
   }, []);
 
-  const medals = ["🥇", "🥈", "🥉"];
+  const medalColors = [
+    "text-amber-400",
+    "text-zinc-400",
+    "text-amber-700",
+  ];
 
   return (
-    <main className="min-h-screen flex flex-col">
-      <Confetti count={25} />
-
-      {/* Header */}
-      <div className="relative z-10 px-4 pt-8 pb-4 text-center">
-        {/* Trophy animation */}
+    <main className="min-h-screen bg-zinc-950 bg-app">
+      <div className="max-w-lg mx-auto px-4 py-8 flex flex-col min-h-screen">
+        {/* Header */}
         <motion.div
-          initial={{ scale: 0, rotate: -180 }}
-          animate={{ scale: 1, rotate: 0 }}
-          transition={{ type: "spring", stiffness: 200, damping: 15 }}
-          className="text-6xl sm:text-7xl mb-4"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-center pt-4 pb-8"
         >
-          🏆
+          <div className="flex items-center justify-center gap-3 mb-3">
+            <motion.div
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: "spring", stiffness: 200, damping: 15 }}
+            >
+              <Trophy className="w-8 h-8 text-amber-500" />
+            </motion.div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-shimmer">
+              Bolao do Oscar 2026
+            </h1>
+          </div>
+          <p className="text-zinc-500 text-sm font-medium tracking-wide uppercase">
+            Amigos da Rua
+          </p>
         </motion.div>
 
-        <motion.h1
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="font-display text-4xl sm:text-5xl lg:text-6xl text-golden mb-2"
+        {/* Countdown */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2, duration: 0.4 }}
+          className="card p-5 mb-6"
         >
-          Bolão do Oscar
-        </motion.h1>
+          <p className="text-center text-zinc-500 text-xs font-semibold mb-4 uppercase tracking-wider">
+            A cerimonia comeca em
+          </p>
+          <Countdown />
+        </motion.div>
 
+        {/* Stats */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="flex items-center justify-center gap-2 mb-2"
+          transition={{ delay: 0.35, duration: 0.4 }}
+          className="grid grid-cols-3 gap-3 mb-6"
         >
-          <span className="text-carnival-yellow font-display text-xl sm:text-2xl">2026</span>
-          <span className="text-white/40">|</span>
-          <span className="text-carnival-pink font-display text-lg sm:text-xl">98th Academy Awards</span>
+          <div className="card p-3 text-center">
+            <Users className="w-4 h-4 text-purple-500 mx-auto mb-1.5" />
+            <p className="text-xl font-bold text-zinc-100">{participantCount}</p>
+            <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider">participantes</p>
+          </div>
+          <div className="card p-3 text-center">
+            <Film className="w-4 h-4 text-amber-500 mx-auto mb-1.5" />
+            <p className="text-xl font-bold text-zinc-100">24</p>
+            <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider">categorias</p>
+          </div>
+          <div className="card p-3 text-center">
+            <Calendar className="w-4 h-4 text-purple-500 mx-auto mb-1.5" />
+            <p className="text-xl font-bold text-zinc-100">15 Mar</p>
+            <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider">cerimonia</p>
+          </div>
         </motion.div>
 
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.7 }}
-          className="text-white/50 font-body text-sm tracking-widest uppercase"
-        >
-          Amigos da Rua
-        </motion.p>
-      </div>
-
-      {/* Countdown */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.9 }}
-        className="px-4 py-6"
-      >
-        <p className="text-center text-white/60 text-sm font-body mb-3 uppercase tracking-wider">
-          A cerimônia começa em
-        </p>
-        <Countdown />
-      </motion.div>
-
-      {/* Fun phrase */}
-      <motion.div
-        key={phrase}
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: -20 }}
-        className="px-6 py-4 text-center"
-      >
-        <p className="font-body font-bold text-lg sm:text-xl text-white/80 italic">
-          &ldquo;{phrase}&rdquo;
-        </p>
-      </motion.div>
-
-      {/* CTA */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1.2 }}
-        className="px-6 py-4 flex flex-col items-center gap-3"
-      >
-        {user ? (
-          <>
-            <p className="text-white/60 font-body text-sm">
-              Fala, <span className="text-carnival-yellow font-bold">{user.name}</span>! 👋
-            </p>
-            <Link
-              href="/votar"
-              className="w-full max-w-sm bg-gradient-to-r from-carnival-pink to-carnival-purple text-white font-display text-xl py-4 px-8 rounded-2xl text-center btn-glow transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg shadow-carnival-pink/20"
-            >
-              Dar meus palpites 🎬
-            </Link>
-          </>
-        ) : (
-          <Link
-            href="/entrar"
-            className="w-full max-w-sm bg-gradient-to-r from-carnival-pink to-carnival-purple text-white font-display text-xl py-4 px-8 rounded-2xl text-center btn-glow transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg shadow-carnival-pink/20"
-          >
-            Entrar no Bolão 🍿
-          </Link>
-        )}
-
-        <Link
-          href="/ranking"
-          className="w-full max-w-sm glass-card text-white font-body font-bold text-lg py-3 px-8 rounded-2xl text-center transition-all duration-300 hover:scale-105 active:scale-95"
-        >
-          Ver Ranking 📊
-        </Link>
-      </motion.div>
-
-      {/* Mini ranking preview */}
-      {topRanking.length > 0 && (
+        {/* CTA Buttons */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.5 }}
-          className="px-6 py-6"
+          transition={{ delay: 0.5, duration: 0.4 }}
+          className="flex flex-col gap-3 mb-6"
         >
-          <div className="glass-card rounded-2xl p-5 max-w-sm mx-auto">
-            <h3 className="font-display text-lg text-carnival-yellow mb-3 text-center">
-              Top 3 do Momento
-            </h3>
+          {user && (
+            <p className="text-zinc-500 text-sm text-center mb-1">
+              Fala, <span className="text-amber-500 font-bold">{user.name}</span>!
+            </p>
+          )}
+
+          <Link
+            href={user ? "/votar" : "/entrar"}
+            className="group flex items-center justify-center gap-2 w-full bg-purple-600 hover:bg-purple-500 text-white font-bold text-base py-3.5 px-6 rounded-xl transition-all duration-200 active:scale-[0.98]"
+          >
+            <Award className="w-5 h-5" />
+            {user ? "Meus Palpites" : "Entrar no Bolao"}
+            <ChevronRight className="w-4 h-4 opacity-60 group-hover:translate-x-0.5 transition-transform" />
+          </Link>
+
+          <Link
+            href="/ranking"
+            className="group flex items-center justify-center gap-2 w-full card hover:border-zinc-700 text-zinc-300 hover:text-zinc-100 font-semibold text-base py-3 px-6 transition-all duration-200 active:scale-[0.98]"
+          >
+            <Trophy className="w-4 h-4 text-amber-500" />
+            Ver Ranking
+            <ChevronRight className="w-4 h-4 opacity-40 group-hover:translate-x-0.5 transition-transform" />
+          </Link>
+        </motion.div>
+
+        {/* Mini Ranking Preview */}
+        {topRanking.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.65, duration: 0.4 }}
+            className="card p-4 mb-6"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-zinc-300">Top 3</h3>
+              <span className="badge badge-purple">ao vivo</span>
+            </div>
             <div className="space-y-2">
               {topRanking.map((entry, i) => (
                 <div
                   key={entry.userId}
-                  className="flex items-center gap-3 py-2 px-3 rounded-xl bg-white/5"
+                  className="flex items-center gap-3 py-2 px-3 rounded-lg bg-zinc-800/50"
                 >
-                  <span className="text-xl">{medals[i]}</span>
-                  <span className="font-body font-bold text-white flex-1 truncate">{entry.name}</span>
-                  <span className="text-carnival-yellow font-display text-sm">
-                    {entry.willWinScore} pts
+                  <span className={`text-sm font-extrabold w-5 ${medalColors[i]}`}>
+                    {i + 1}
+                  </span>
+                  <Award className={`w-4 h-4 ${medalColors[i]}`} />
+                  <span className="font-semibold text-sm text-zinc-200 flex-1 truncate">
+                    {entry.name}
+                  </span>
+                  <span className="text-amber-500 font-bold text-sm tabular-nums">
+                    {entry.totalScore} pts
                   </span>
                 </div>
               ))}
             </div>
             {participantCount > 3 && (
-              <p className="text-center text-white/40 text-xs mt-3 font-body">
+              <Link
+                href="/ranking"
+                className="flex items-center justify-center gap-1 text-zinc-500 hover:text-zinc-400 text-xs font-medium mt-3 transition-colors"
+              >
                 +{participantCount - 3} participantes
-              </p>
+                <ChevronRight className="w-3 h-3" />
+              </Link>
             )}
-          </div>
-        </motion.div>
-      )}
+          </motion.div>
+        )}
 
-      {/* Stats */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.8 }}
-        className="px-6 py-4 flex justify-center gap-8"
-      >
-        <div className="text-center">
-          <p className="text-2xl font-display text-carnival-purple">{participantCount}</p>
-          <p className="text-xs text-white/50 font-body uppercase tracking-wider">participantes</p>
-        </div>
-        <div className="text-center">
-          <p className="text-2xl font-display text-carnival-blue">24</p>
-          <p className="text-xs text-white/50 font-body uppercase tracking-wider">categorias</p>
-        </div>
-        <div className="text-center">
-          <p className="text-2xl font-display text-carnival-green">15 Mar</p>
-          <p className="text-xs text-white/50 font-body uppercase tracking-wider">cerimônia</p>
-        </div>
-      </motion.div>
+        {/* Spacer */}
+        <div className="flex-1" />
 
-      {/* Footer */}
-      <div className="mt-auto px-6 py-6 text-center space-y-3">
-        <Link
-          href="/apuracao"
-          className="text-white/30 text-xs font-body hover:text-white/50 transition-colors"
+        {/* Footer */}
+        <motion.footer
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8, duration: 0.4 }}
+          className="text-center py-6 space-y-3"
         >
-          🔐 Modo Apuração
-        </Link>
-        <p className="text-white/20 text-xs font-body">
-          Feito com 🍿 pelos Amigos da Rua
-        </p>
+          <Link
+            href="/apuracao"
+            className="text-zinc-600 text-xs font-medium hover:text-zinc-400 transition-colors"
+          >
+            Modo Apuracao
+          </Link>
+          <p className="text-zinc-700 text-xs">
+            Feito com amor pelos Amigos da Rua
+          </p>
+        </motion.footer>
       </div>
     </main>
   );

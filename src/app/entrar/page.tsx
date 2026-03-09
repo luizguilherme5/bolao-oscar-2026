@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Film, LogIn, UserPlus, ArrowLeft, Loader2 } from "lucide-react";
 
 export default function EntrarPage() {
   const router = useRouter();
@@ -45,15 +46,15 @@ export default function EntrarPage() {
   };
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-4 py-8">
+    <main className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center px-4 py-8">
       <Link href="/" className="mb-8">
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: "spring", stiffness: 200 }}
-          className="text-5xl"
+          className="w-14 h-14 rounded-2xl bg-purple-600/15 flex items-center justify-center"
         >
-          🎬
+          <Film className="w-7 h-7 text-purple-500" />
         </motion.div>
       </Link>
 
@@ -62,35 +63,37 @@ export default function EntrarPage() {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-sm"
       >
-        <h1 className="font-display text-3xl text-golden text-center mb-2">
+        <h1 className="text-2xl font-bold text-zinc-100 text-center mb-1">
           {mode === "register" ? "Entrar no Bolão" : "Bem-vindo de volta"}
         </h1>
-        <p className="text-white/50 text-center font-body text-sm mb-8">
+        <p className="text-zinc-500 text-center text-sm mb-8">
           {mode === "register"
             ? "Crie sua conta e dê seus palpites!"
-            : "Acesse sua conta pra ver ou editar palpites"}
+            : "Acesse sua conta para ver ou editar palpites"}
         </p>
 
         {/* Mode toggle */}
-        <div className="flex gap-1 mb-6 glass-card rounded-xl p-1">
+        <div className="flex gap-1 mb-6 card p-1">
           <button
             onClick={() => { setMode("register"); setError(""); }}
-            className={`flex-1 py-2.5 rounded-lg font-body font-bold text-sm transition-all ${
+            className={`flex-1 py-2.5 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-1.5 ${
               mode === "register"
-                ? "bg-gradient-to-r from-carnival-pink to-carnival-purple text-white"
-                : "text-white/50"
+                ? "bg-purple-600 text-white"
+                : "text-zinc-500 hover:text-zinc-300"
             }`}
           >
+            <UserPlus className="w-4 h-4" />
             Criar conta
           </button>
           <button
             onClick={() => { setMode("login"); setError(""); }}
-            className={`flex-1 py-2.5 rounded-lg font-body font-bold text-sm transition-all ${
+            className={`flex-1 py-2.5 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-1.5 ${
               mode === "login"
-                ? "bg-gradient-to-r from-carnival-pink to-carnival-purple text-white"
-                : "text-white/50"
+                ? "bg-purple-600 text-white"
+                : "text-zinc-500 hover:text-zinc-300"
             }`}
           >
+            <LogIn className="w-4 h-4" />
             Já tenho conta
           </button>
         </div>
@@ -101,7 +104,7 @@ export default function EntrarPage() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
             >
-              <label className="block text-white/60 text-xs font-body font-bold uppercase tracking-wider mb-1.5">
+              <label className="block text-zinc-500 text-xs font-semibold uppercase tracking-wider mb-1.5">
                 Seu nome
               </label>
               <input
@@ -110,13 +113,13 @@ export default function EntrarPage() {
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Como a galera te chama?"
                 required={mode === "register"}
-                className="w-full glass-card rounded-xl px-4 py-3 font-body text-white placeholder:text-white/30 bg-transparent"
+                className="w-full card px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-600 bg-transparent"
               />
             </motion.div>
           )}
 
           <div>
-            <label className="block text-white/60 text-xs font-body font-bold uppercase tracking-wider mb-1.5">
+            <label className="block text-zinc-500 text-xs font-semibold uppercase tracking-wider mb-1.5">
               E-mail
             </label>
             <input
@@ -125,12 +128,12 @@ export default function EntrarPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="seu@email.com"
               required
-              className="w-full glass-card rounded-xl px-4 py-3 font-body text-white placeholder:text-white/30 bg-transparent"
+              className="w-full card px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-600 bg-transparent"
             />
           </div>
 
           <div>
-            <label className="block text-white/60 text-xs font-body font-bold uppercase tracking-wider mb-1.5">
+            <label className="block text-zinc-500 text-xs font-semibold uppercase tracking-wider mb-1.5">
               Senha
             </label>
             <input
@@ -140,7 +143,7 @@ export default function EntrarPage() {
               placeholder="Crie uma senha"
               required
               minLength={4}
-              className="w-full glass-card rounded-xl px-4 py-3 font-body text-white placeholder:text-white/30 bg-transparent"
+              className="w-full card px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-600 bg-transparent"
             />
           </div>
 
@@ -148,7 +151,7 @@ export default function EntrarPage() {
             <motion.p
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              className="text-carnival-pink text-sm font-body font-bold text-center bg-carnival-pink/10 rounded-xl py-2"
+              className="text-red-400 text-sm font-semibold text-center bg-red-500/10 border border-red-500/20 rounded-xl py-2.5"
             >
               {error}
             </motion.p>
@@ -157,14 +160,20 @@ export default function EntrarPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-carnival-pink to-carnival-purple text-white font-display text-lg py-4 rounded-2xl btn-glow transition-all duration-300 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 shadow-lg shadow-carnival-pink/20"
+            className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold text-base py-3.5 rounded-xl transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:hover:bg-purple-600 flex items-center justify-center gap-2"
           >
             {loading ? (
-              <span className="animate-pulse">Entrando... 🎬</span>
+              <Loader2 className="w-5 h-5 animate-spin" />
             ) : mode === "register" ? (
-              "Criar conta e votar 🍿"
+              <>
+                <UserPlus className="w-5 h-5" />
+                Criar conta e votar
+              </>
             ) : (
-              "Entrar 🎥"
+              <>
+                <LogIn className="w-5 h-5" />
+                Entrar
+              </>
             )}
           </button>
         </form>
@@ -172,9 +181,10 @@ export default function EntrarPage() {
 
       <Link
         href="/"
-        className="mt-8 text-white/30 font-body text-sm hover:text-white/50 transition-colors"
+        className="mt-8 text-zinc-600 text-sm hover:text-zinc-400 transition-colors flex items-center gap-1.5"
       >
-        ← Voltar pro início
+        <ArrowLeft className="w-4 h-4" />
+        Voltar ao início
       </Link>
     </main>
   );

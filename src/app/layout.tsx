@@ -19,10 +19,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
-      <body className="bg-carnival noise-overlay min-h-screen">
-        <div className="relative z-10">
-          {children}
-        </div>
+      <body className="bg-app min-h-screen">
+        {children}
       </body>
     </html>
   );

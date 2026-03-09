@@ -3,19 +3,34 @@
 import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Toast from "@/components/Toast";
+import { Shield, Trophy, Check, ChevronDown, Home, Film, BarChart3, Crown, Minus } from "lucide-react";
 import { categories, nominees, categoryGroups } from "@/lib/data";
 import type { RankingEntry } from "@/app/api/ranking/route";
 
 export default function ApuracaoPage() {
-  const [password, setPassword] = useState("");
-  const [authenticated, setAuthenticated] = useState(false);
-  const [error, setError] = useState("");
+  const router = useRouter();
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [winners, setWinners] = useState<Record<string, string>>({});
   const [rankings, setRankings] = useState<RankingEntry[]>([]);
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [toast, setToast] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Check admin session
+  useEffect(() => {
+    fetch("/api/auth")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.user || !data.user.isAdmin) {
+          setIsAdmin(false);
+        } else {
+          setIsAdmin(true);
+        }
+      })
+      .catch(() => setIsAdmin(false));
+  }, []);
 
   const loadData = useCallback(async () => {
     const [winnersRes, rankingRes] = await Promise.all([
@@ -27,18 +42,8 @@ export default function ApuracaoPage() {
   }, []);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (password === "WagnerMoura123") {
-      setAuthenticated(true);
-      setError("");
-    } else {
-      setError("Senha incorreta! Só o admin pode entrar aqui 🔐");
-    }
-  };
+    if (isAdmin) loadData();
+  }, [isAdmin, loadData]);
 
   const handleSetWinner = async (categoryId: string, nomineeId: string) => {
     setLoading(true);
@@ -46,7 +51,7 @@ export default function ApuracaoPage() {
       const res = await fetch("/api/winners", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password, categoryId, nomineeId }),
+        body: JSON.stringify({ categoryId, nomineeId }),
       });
       const data = await res.json();
       if (data.error) {
@@ -54,7 +59,6 @@ export default function ApuracaoPage() {
       } else {
         setWinners(data.winners);
         setToast("Vencedor definido!");
-        // Reload rankings
         const rankingRes = await fetch("/api/ranking").then((r) => r.json());
         setRankings(rankingRes.rankings || []);
       }
@@ -71,7 +75,7 @@ export default function ApuracaoPage() {
       const res = await fetch("/api/winners", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password, categoryId }),
+        body: JSON.stringify({ categoryId }),
       });
       const data = await res.json();
       if (data.error) {
@@ -91,152 +95,202 @@ export default function ApuracaoPage() {
 
   const winnersCount = Object.keys(winners).length;
 
-  if (!authenticated) {
+  // Loading state
+  if (isAdmin === null) {
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center px-4">
+      <div className="min-h-screen flex items-center justify-center bg-zinc-950">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
+        >
+          <Shield className="w-10 h-10 text-amber-400" />
+        </motion.div>
+      </div>
+    );
+  }
+
+  // Not admin
+  if (!isAdmin) {
+    return (
+      <main className="min-h-screen flex flex-col items-center justify-center px-4 bg-zinc-950">
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: "spring" }}
-          className="text-6xl mb-6"
         >
-          🔐
+          <Shield className="w-16 h-16 text-red-400 mb-6" />
         </motion.div>
 
-        <h1 className="font-display text-3xl text-golden text-center mb-2">
-          Modo Apuração
+        <h1 className="text-2xl font-bold text-white text-center mb-2">
+          Acesso Restrito
         </h1>
-        <p className="text-white/50 font-body text-sm text-center mb-8">
-          Área restrita para o administrador do bolão
+        <p className="text-zinc-500 text-sm text-center mb-8">
+          Apenas administradores podem acessar a apuração.
         </p>
 
-        <form onSubmit={handleLogin} className="w-full max-w-sm space-y-4">
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Digite a senha do admin"
-            className="w-full glass-card rounded-xl px-4 py-3 font-body text-white placeholder:text-white/30 bg-transparent text-center"
-          />
-
-          {error && (
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-carnival-pink text-sm font-body text-center"
-            >
-              {error}
-            </motion.p>
-          )}
-
-          <button
-            type="submit"
-            className="w-full bg-gradient-to-r from-carnival-orange to-carnival-yellow text-carnival-dark font-display text-lg py-4 rounded-2xl transition-all hover:scale-105 active:scale-95"
-          >
-            Entrar como Admin 🎬
-          </button>
-        </form>
-
-        <Link href="/" className="mt-8 text-white/30 font-body text-sm hover:text-white/50">
-          ← Voltar pro início
-        </Link>
+        <button
+          onClick={() => router.push("/votar")}
+          className="px-6 py-3 rounded-xl bg-zinc-800 text-white font-medium text-sm hover:bg-zinc-700 transition-colors"
+        >
+          Voltar para Palpites
+        </button>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen pb-8">
+    <main className="min-h-screen pb-24 bg-zinc-950">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-carnival-dark/80 backdrop-blur-xl border-b border-white/5">
-        <div className="px-4 py-3 flex items-center gap-3 max-w-lg mx-auto">
-          <Link href="/" className="text-2xl">🔐</Link>
+      <div className="sticky top-0 z-30 bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-800/60">
+        <div className="px-4 py-4 flex items-center gap-3 max-w-lg mx-auto">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
+            <Shield className="w-5 h-5 text-amber-400" />
+          </div>
           <div className="flex-1">
-            <p className="font-display text-sm text-carnival-orange">Modo Apuração</p>
-            <p className="text-white/40 text-xs font-body">
+            <h1 className="font-bold text-base text-white">Apuração</h1>
+            <p className="text-zinc-500 text-xs">
               {winnersCount} de 24 categorias apuradas
             </p>
           </div>
-          <Link href="/ranking" className="text-xs font-body text-carnival-yellow hover:text-carnival-yellow/80">
-            Ver Ranking →
-          </Link>
+          <div className="badge badge-gold">
+            <Trophy className="w-3.5 h-3.5" />
+            <span className="text-xs font-semibold">{winnersCount}/24</span>
+          </div>
         </div>
-        <div className="h-1 bg-white/5">
+
+        {/* Progress bar */}
+        <div className="h-1 bg-zinc-800/60">
           <motion.div
-            className="h-full bg-gradient-to-r from-carnival-orange to-carnival-yellow"
+            className="h-full bg-gradient-to-r from-amber-500 to-yellow-400"
             animate={{ width: `${(winnersCount / 24) * 100}%` }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
           />
         </div>
       </div>
 
-      {/* Live ranking preview */}
+      {/* Live mini ranking preview */}
       <div className="px-4 py-4 max-w-lg mx-auto">
-        <div className="glass-card rounded-2xl p-4">
-          <h3 className="font-display text-sm text-carnival-yellow mb-3">
-            Ranking ao Vivo ({rankings.length} participantes)
-          </h3>
-          <div className="space-y-1.5 max-h-40 overflow-y-auto">
-            {rankings.slice(0, 10).map((entry, i) => (
-              <div key={entry.userId} className="flex items-center gap-2 text-sm">
-                <span className="w-6 text-center font-display text-white/40">{i + 1}</span>
-                <span className="font-body text-white flex-1 truncate">{entry.name}</span>
-                <span className="font-display text-carnival-yellow">{entry.willWinScore}</span>
-              </div>
-            ))}
+        <div className="card">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Crown className="w-4 h-4 text-amber-400" />
+              <h3 className="font-semibold text-sm text-white">
+                Ranking ao Vivo
+              </h3>
+            </div>
+            <span className="text-zinc-500 text-xs">
+              {rankings.length} participantes
+            </span>
+          </div>
+          <div className="space-y-1.5">
+            {rankings.slice(0, 5).map((entry, i) => {
+              const medals = ["text-amber-400", "text-zinc-400", "text-amber-600"];
+              return (
+                <div
+                  key={entry.userId}
+                  className="flex items-center gap-2.5 py-1.5 px-2 rounded-lg hover:bg-zinc-800/40 transition-colors"
+                >
+                  <span
+                    className={`w-6 text-center font-bold text-sm ${
+                      i < 3 ? medals[i] : "text-zinc-600"
+                    }`}
+                  >
+                    {i + 1}
+                  </span>
+                  <span className="text-sm text-white flex-1 truncate">
+                    {entry.name}
+                  </span>
+                  <span className="text-sm font-bold text-amber-400 tabular-nums">
+                    {entry.totalScore}
+                  </span>
+                  <span className="text-[10px] text-zinc-600">pts</span>
+                </div>
+              );
+            })}
+            {rankings.length === 0 && (
+              <p className="text-zinc-600 text-xs text-center py-3">
+                Nenhum participante ainda.
+              </p>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Categories */}
+      {/* Categories grouped */}
       <div className="px-4 max-w-lg mx-auto space-y-6">
         {categoryGroups.map((group) => {
           const groupCategories = categories.filter((c) => c.group === group.id);
+          const groupWinnersCount = groupCategories.filter(
+            (c) => winners[c.id]
+          ).length;
 
           return (
             <div key={group.id}>
-              <h2 className="font-display text-lg text-white mb-3 flex items-center gap-2">
-                <span>{group.emoji}</span> {group.name}
-              </h2>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-bold text-sm text-white flex items-center gap-2">
+                  {group.name}
+                </h2>
+                <span className="text-zinc-500 text-xs">
+                  {groupWinnersCount}/{groupCategories.length} &middot;{" "}
+                  {group.description}
+                </span>
+              </div>
 
               <div className="space-y-2">
                 {groupCategories.map((category) => {
                   const isExpanded = expandedCategory === category.id;
                   const currentWinner = winners[category.id];
                   const categoryNominees = nominees[category.id] || [];
-                  const winnerNominee = categoryNominees.find((n) => n.id === currentWinner);
+                  const winnerNominee = categoryNominees.find(
+                    (n) => n.id === currentWinner
+                  );
 
-                  // Count how many people voted for each nominee
+                  // Count votes per nominee
                   const voteCounts: Record<string, number> = {};
                   rankings.forEach((r) => {
                     const detail = r.willWinDetails[category.id];
                     if (detail) {
-                      voteCounts[detail.picked] = (voteCounts[detail.picked] || 0) + 1;
+                      voteCounts[detail.picked] =
+                        (voteCounts[detail.picked] || 0) + 1;
                     }
                   });
+                  const totalVotes = Object.values(voteCounts).reduce(
+                    (a, b) => a + b,
+                    0
+                  );
 
                   return (
-                    <div key={category.id} className="glass-card rounded-2xl overflow-hidden">
+                    <div key={category.id} className="card overflow-hidden">
                       <button
-                        onClick={() => setExpandedCategory(isExpanded ? null : category.id)}
-                        className="w-full px-4 py-3 flex items-center gap-3 text-left active:bg-white/5"
+                        onClick={() =>
+                          setExpandedCategory(isExpanded ? null : category.id)
+                        }
+                        className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-zinc-800/30 transition-colors"
                       >
-                        <span className="text-xl">{category.emoji}</span>
                         <div className="flex-1 min-w-0">
-                          <p className="font-body font-bold text-white text-sm">{category.name}</p>
+                          <p className="font-semibold text-white text-sm">
+                            {category.name}
+                          </p>
                           {currentWinner ? (
-                            <p className="text-carnival-yellow text-xs font-body truncate">
-                              🏆 {winnerNominee?.name}
+                            <p className="text-amber-400 text-xs truncate flex items-center gap-1 mt-0.5">
+                              <Trophy className="w-3 h-3 shrink-0" />
+                              {winnerNominee?.namePtBr || winnerNominee?.name}
                             </p>
                           ) : (
-                            <p className="text-white/30 text-xs font-body">Pendente</p>
+                            <p className="text-zinc-600 text-xs mt-0.5">
+                              Pendente
+                            </p>
                           )}
                         </div>
-                        {currentWinner && <span className="text-carnival-green text-sm">✓</span>}
-                        <motion.span
+                        {currentWinner && (
+                          <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                        )}
+                        <motion.div
                           animate={{ rotate: isExpanded ? 180 : 0 }}
-                          className="text-white/40 text-sm"
+                          transition={{ duration: 0.2 }}
                         >
-                          ▼
-                        </motion.span>
+                          <ChevronDown className="w-4 h-4 text-zinc-600" />
+                        </motion.div>
                       </button>
 
                       <AnimatePresence>
@@ -245,57 +299,102 @@ export default function ApuracaoPage() {
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: "auto", opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.25, ease: "easeInOut" }}
                           >
-                            <div className="px-4 pb-4 space-y-2">
+                            <div className="px-4 pb-4 space-y-2 border-t border-zinc-800/60 pt-3">
                               {currentWinner && (
                                 <button
-                                  onClick={() => handleRemoveWinner(category.id)}
+                                  onClick={() =>
+                                    handleRemoveWinner(category.id)
+                                  }
                                   disabled={loading}
-                                  className="w-full text-xs text-carnival-pink/60 font-body hover:text-carnival-pink py-1"
+                                  className="w-full flex items-center justify-center gap-1.5 text-xs text-red-400/60 font-medium hover:text-red-400 py-1.5 rounded-lg hover:bg-red-400/5 transition-colors"
                                 >
+                                  <Minus className="w-3.5 h-3.5" />
                                   Remover vencedor
                                 </button>
                               )}
+
                               {categoryNominees.map((nominee) => {
                                 const isWinner = currentWinner === nominee.id;
                                 const count = voteCounts[nominee.id] || 0;
-                                const percentage = rankings.length > 0
-                                  ? Math.round((count / rankings.length) * 100)
-                                  : 0;
+                                const percentage =
+                                  totalVotes > 0
+                                    ? Math.round((count / totalVotes) * 100)
+                                    : 0;
 
                                 return (
-                                  <button
+                                  <motion.button
                                     key={nominee.id}
-                                    onClick={() => handleSetWinner(category.id, nominee.id)}
+                                    onClick={() =>
+                                      handleSetWinner(category.id, nominee.id)
+                                    }
                                     disabled={loading}
-                                    className={`w-full rounded-xl p-3 text-left transition-all active:scale-98 ${
+                                    whileTap={{ scale: 0.98 }}
+                                    className={`w-full rounded-xl p-3 text-left transition-all ${
                                       isWinner
-                                        ? "bg-carnival-yellow/20 border-2 border-carnival-yellow"
-                                        : "bg-white/5 border border-white/10 hover:bg-white/10"
+                                        ? "bg-amber-500/10 border-2 border-amber-500/50 ring-1 ring-amber-500/20"
+                                        : "bg-zinc-800/40 border border-zinc-800 hover:bg-zinc-800/70 hover:border-zinc-700"
                                     }`}
                                   >
                                     <div className="flex items-center gap-3">
                                       <div className="flex-1 min-w-0">
-                                        <p className={`font-body font-bold text-sm ${isWinner ? "text-carnival-yellow" : "text-white"}`}>
-                                          {nominee.name}
-                                          {isWinner && " 🏆"}
+                                        <p
+                                          className={`font-semibold text-sm ${
+                                            isWinner
+                                              ? "text-amber-400"
+                                              : "text-white"
+                                          }`}
+                                        >
+                                          {nominee.namePtBr}
+                                          {isWinner && (
+                                            <Trophy className="w-3.5 h-3.5 inline ml-1.5 -mt-0.5" />
+                                          )}
                                         </p>
-                                        <p className="text-white/40 text-xs font-body truncate">{nominee.details}</p>
+                                        <p className="text-zinc-500 text-xs truncate mt-0.5">
+                                          {nominee.name !== nominee.namePtBr
+                                            ? nominee.name
+                                            : nominee.details}
+                                        </p>
                                       </div>
                                       <div className="text-right shrink-0">
-                                        <p className="text-white/50 text-xs font-body">{count} votos</p>
-                                        <p className="text-white/30 text-[10px] font-body">{percentage}%</p>
+                                        <p className="text-zinc-400 text-xs font-medium tabular-nums">
+                                          {count}{" "}
+                                          <span className="text-zinc-600">
+                                            {count === 1 ? "voto" : "votos"}
+                                          </span>
+                                        </p>
+                                        <p className="text-zinc-600 text-[10px] tabular-nums">
+                                          {percentage}%
+                                        </p>
                                       </div>
                                     </div>
-                                    {/* Vote bar */}
-                                    <div className="mt-2 h-1 bg-white/10 rounded-full overflow-hidden">
+
+                                    {/* Vote percentage bar */}
+                                    <div className="mt-2 h-1 bg-zinc-800 rounded-full overflow-hidden">
                                       <motion.div
-                                        className={`h-full rounded-full ${isWinner ? "bg-carnival-yellow" : "bg-carnival-purple/50"}`}
+                                        className={`h-full rounded-full ${
+                                          isWinner
+                                            ? "bg-amber-400"
+                                            : "bg-zinc-600"
+                                        }`}
                                         initial={{ width: 0 }}
-                                        animate={{ width: `${percentage}%` }}
+                                        animate={{
+                                          width: `${percentage}%`,
+                                        }}
+                                        transition={{
+                                          duration: 0.5,
+                                          ease: "easeOut",
+                                        }}
                                       />
                                     </div>
-                                  </button>
+
+                                    {!isWinner && (
+                                      <p className="text-zinc-600 text-[10px] mt-2 text-center">
+                                        Definir vencedor
+                                      </p>
+                                    )}
+                                  </motion.button>
                                 );
                               })}
                             </div>
@@ -309,6 +408,37 @@ export default function ApuracaoPage() {
             </div>
           );
         })}
+      </div>
+
+      {/* Bottom nav */}
+      <div className="fixed bottom-0 left-0 right-0 z-30 bg-zinc-950/90 backdrop-blur-xl border-t border-zinc-800/60">
+        <div className="max-w-lg mx-auto flex items-center justify-around py-3 px-4">
+          <Link
+            href="/"
+            className="flex flex-col items-center gap-1 text-zinc-500 hover:text-zinc-300 transition-colors"
+          >
+            <Home className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Inicio</span>
+          </Link>
+          <Link
+            href="/votar"
+            className="flex flex-col items-center gap-1 text-zinc-500 hover:text-zinc-300 transition-colors"
+          >
+            <Film className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Palpites</span>
+          </Link>
+          <Link
+            href="/ranking"
+            className="flex flex-col items-center gap-1 text-zinc-500 hover:text-zinc-300 transition-colors"
+          >
+            <BarChart3 className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Ranking</span>
+          </Link>
+          <div className="flex flex-col items-center gap-1 text-amber-400">
+            <Shield className="w-5 h-5" />
+            <span className="text-[10px] font-bold">Apuração</span>
+          </div>
+        </div>
       </div>
 
       <Toast message={toast} show={!!toast} onHide={() => setToast("")} />

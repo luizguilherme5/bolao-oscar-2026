@@ -5,11 +5,12 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  password: string; // plain text for now (TODO: hash in production)
+  password: string;
+  isAdmin: boolean;
   createdAt: string;
 }
 
-const ADMIN_PASSWORD = "WagnerMoura123";
+const ADMIN_EMAIL = "luizonbits@gmail.com";
 
 export async function registerUser(name: string, email: string, password: string): Promise<{ user: User | null; error?: string }> {
   const kv = await getKV();
@@ -26,6 +27,7 @@ export async function registerUser(name: string, email: string, password: string
     name: name.trim(),
     email: normalizedEmail,
     password,
+    isAdmin: normalizedEmail === ADMIN_EMAIL,
     createdAt: new Date().toISOString(),
   };
 
@@ -54,11 +56,13 @@ export async function loginUser(email: string, password: string): Promise<{ user
     return { user: null, error: "Senha incorreta!" };
   }
 
-  return { user };
-}
+  // Ensure admin flag is current
+  if (normalizedEmail === ADMIN_EMAIL && !user.isAdmin) {
+    user.isAdmin = true;
+    await kv.set(`user:${userId}`, user);
+  }
 
-export function isAdminPassword(password: string): boolean {
-  return password === ADMIN_PASSWORD;
+  return { user };
 }
 
 export async function getAllUsers(): Promise<User[]> {
