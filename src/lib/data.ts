@@ -231,72 +231,111 @@ export const nominees: Record<string, Nominee[]> = {
 
 // Map nominee to their associated film (for "most awarded" calculation)
 // For acting/directing categories, this maps to the film they're in
+// Complete nominee-to-film mapping. Built explicitly to avoid fragile suffix-stripping
+// that breaks on films like "one_battle_after_another" (stripped to "one_battle").
+const nomineeToFilm: Record<string, string> = {
+  // best_picture — nominee IS the film
+  bugonia: "bugonia", f1: "f1", frankenstein: "frankenstein", hamnet: "hamnet",
+  marty_supreme: "marty_supreme", one_battle_after_another: "one_battle_after_another",
+  the_secret_agent: "the_secret_agent", sentimental_value: "sentimental_value",
+  sinners: "sinners", train_dreams: "train_dreams",
+  // directing
+  chloe_zhao_hamnet: "hamnet", josh_safdie_marty: "marty_supreme",
+  pta_one_battle: "one_battle_after_another", joachim_trier_sentimental: "sentimental_value",
+  ryan_coogler_sinners: "sinners",
+  // actor leading
+  timothee_chalamet_marty: "marty_supreme", leonardo_dicaprio_one_battle: "one_battle_after_another",
+  ethan_hawke_blue_moon: "blue_moon", michael_b_jordan_sinners: "sinners",
+  wagner_moura_secret_agent: "the_secret_agent",
+  // actress leading
+  jessie_buckley_hamnet: "hamnet", rose_byrne_if_i_had_legs: "if_i_had_legs",
+  kate_hudson_song_sung_blue: "song_sung_blue", renate_reinsve_sentimental: "sentimental_value",
+  emma_stone_bugonia: "bugonia",
+  // actor supporting
+  benicio_del_toro_one_battle: "one_battle_after_another", jacob_elordi_frankenstein: "frankenstein",
+  delroy_lindo_sinners: "sinners", sean_penn_one_battle: "one_battle_after_another",
+  stellan_skarsgard_sentimental: "sentimental_value",
+  // actress supporting
+  elle_fanning_sentimental: "sentimental_value", inga_lilleaas_sentimental: "sentimental_value",
+  amy_madigan_weapons: "weapons", wunmi_mosaku_sinners: "sinners",
+  teyana_taylor_one_battle: "one_battle_after_another",
+  // original_screenplay
+  blue_moon_screenplay: "blue_moon", it_was_just_accident_screenplay: "it_was_just_accident",
+  marty_supreme_screenplay: "marty_supreme", sentimental_value_screenplay: "sentimental_value",
+  sinners_screenplay: "sinners",
+  // adapted_screenplay
+  bugonia_screenplay: "bugonia", frankenstein_screenplay: "frankenstein",
+  hamnet_screenplay: "hamnet", one_battle_screenplay: "one_battle_after_another",
+  train_dreams_screenplay: "train_dreams",
+  // animated_feature
+  arco: "arco", elio: "elio", kpop_demon_hunters: "kpop_demon_hunters",
+  little_amelie: "little_amelie", zootopia_2: "zootopia_2",
+  // international_feature
+  secret_agent_brazil: "the_secret_agent", it_was_just_accident_france: "it_was_just_accident",
+  sentimental_value_norway: "sentimental_value", sirat_spain: "sirat",
+  voice_hind_rajab_tunisia: "voice_hind_rajab",
+  // documentary_feature
+  alabama_solution: "alabama_solution", come_see_me_good_light: "come_see_me_good_light",
+  cutting_through_rocks: "cutting_through_rocks", mr_nobody_against_putin: "mr_nobody_against_putin",
+  perfect_neighbor: "perfect_neighbor",
+  // original_score
+  bugonia_score: "bugonia", frankenstein_score: "frankenstein", hamnet_score: "hamnet",
+  one_battle_score: "one_battle_after_another", sinners_score: "sinners",
+  // original_song
+  dear_me_song: "dear_me", golden_song: "kpop_demon_hunters",
+  i_lied_to_you_song: "sinners", sweet_dreams_joy_song: "viva_verdi",
+  train_dreams_song: "train_dreams",
+  // cinematography
+  frankenstein_cinematography: "frankenstein", marty_supreme_cinematography: "marty_supreme",
+  one_battle_cinematography: "one_battle_after_another", sinners_cinematography: "sinners",
+  train_dreams_cinematography: "train_dreams",
+  // film_editing
+  f1_editing: "f1", marty_supreme_editing: "marty_supreme",
+  one_battle_editing: "one_battle_after_another", sentimental_value_editing: "sentimental_value",
+  sinners_editing: "sinners",
+  // production_design
+  frankenstein_production: "frankenstein", hamnet_production: "hamnet",
+  marty_supreme_production: "marty_supreme", one_battle_production: "one_battle_after_another",
+  sinners_production: "sinners",
+  // costume_design
+  avatar_costume: "avatar_fire_and_ash", frankenstein_costume: "frankenstein",
+  hamnet_costume: "hamnet", marty_supreme_costume: "marty_supreme", sinners_costume: "sinners",
+  // makeup_hairstyling
+  frankenstein_makeup: "frankenstein", kokuho_makeup: "kokuho",
+  sinners_makeup: "sinners", smashing_machine_makeup: "smashing_machine",
+  ugly_stepsister_makeup: "ugly_stepsister",
+  // sound
+  f1_sound: "f1", frankenstein_sound: "frankenstein",
+  one_battle_sound: "one_battle_after_another", sinners_sound: "sinners", sirat_sound: "sirat",
+  // visual_effects
+  avatar_vfx: "avatar_fire_and_ash", f1_vfx: "f1",
+  jurassic_world_rebirth_vfx: "jurassic_world_rebirth", lost_bus_vfx: "lost_bus",
+  sinners_vfx: "sinners",
+  // casting
+  hamnet_casting: "hamnet", marty_supreme_casting: "marty_supreme",
+  one_battle_casting: "one_battle_after_another", secret_agent_casting: "the_secret_agent",
+  sinners_casting: "sinners",
+  // documentary_short
+  all_empty_rooms: "all_empty_rooms", armed_only_camera: "armed_only_camera",
+  children_no_more: "children_no_more", devil_is_busy: "devil_is_busy",
+  perfectly_strangeness: "perfectly_strangeness",
+  // live_action_short
+  butchers_stain: "butchers_stain", friend_of_dorothy: "friend_of_dorothy",
+  jane_austen_period_drama: "jane_austen_period_drama", the_singers: "the_singers",
+  two_people_exchanging_saliva: "two_people_exchanging_saliva",
+  // animated_short
+  butterfly_short: "butterfly", forevergreen: "forevergreen",
+  girl_who_cried_pearls: "girl_who_cried_pearls", retirement_plan: "retirement_plan",
+  three_sisters: "three_sisters",
+};
+
 export function getNomineeFilmId(categoryId: string, nomineeId: string): string | null {
-  // Categories where nominee IS the film
-  const filmCategories = [
-    "best_picture", "original_screenplay", "adapted_screenplay",
-    "animated_feature", "international_feature", "documentary_feature",
-    "original_score", "original_song", "cinematography", "film_editing",
-    "production_design", "costume_design", "makeup_hairstyling", "sound",
-    "visual_effects", "casting", "documentary_short", "live_action_short",
-    "animated_short",
-  ];
-
-  if (filmCategories.includes(categoryId)) {
-    // Extract the base film name from the nominee id
-    // e.g. "sinners_score" -> "sinners", "frankenstein_cinematography" -> "frankenstein"
-    const suffixes = ["_score", "_screenplay", "_cinematography", "_editing",
-      "_production", "_costume", "_makeup", "_sound", "_vfx", "_casting",
-      "_song", "_short"];
-    let filmId = nomineeId;
-    for (const suffix of suffixes) {
-      if (filmId.endsWith(suffix)) {
-        filmId = filmId.slice(0, -suffix.length);
-        break;
-      }
-    }
-    return filmId;
-  }
-
-  // For acting/directing, map to film
-  const actorToFilm: Record<string, string> = {
-    // Directing
-    "chloe_zhao_hamnet": "hamnet",
-    "josh_safdie_marty": "marty_supreme",
-    "pta_one_battle": "one_battle_after_another",
-    "joachim_trier_sentimental": "sentimental_value",
-    "ryan_coogler_sinners": "sinners",
-    // Actor leading
-    "timothee_chalamet_marty": "marty_supreme",
-    "leonardo_dicaprio_one_battle": "one_battle_after_another",
-    "ethan_hawke_blue_moon": "blue_moon",
-    "michael_b_jordan_sinners": "sinners",
-    "wagner_moura_secret_agent": "the_secret_agent",
-    // Actress leading
-    "jessie_buckley_hamnet": "hamnet",
-    "rose_byrne_if_i_had_legs": "if_i_had_legs",
-    "kate_hudson_song_sung_blue": "song_sung_blue",
-    "renate_reinsve_sentimental": "sentimental_value",
-    "emma_stone_bugonia": "bugonia",
-    // Actor supporting
-    "benicio_del_toro_one_battle": "one_battle_after_another",
-    "jacob_elordi_frankenstein": "frankenstein",
-    "delroy_lindo_sinners": "sinners",
-    "sean_penn_one_battle": "one_battle_after_another",
-    "stellan_skarsgard_sentimental": "sentimental_value",
-    // Actress supporting
-    "elle_fanning_sentimental": "sentimental_value",
-    "inga_lilleaas_sentimental": "sentimental_value",
-    "amy_madigan_weapons": "weapons",
-    "wunmi_mosaku_sinners": "sinners",
-    "teyana_taylor_one_battle": "one_battle_after_another",
-  };
-
-  return actorToFilm[nomineeId] || null;
+  return nomineeToFilm[nomineeId] || null;
 }
 
 // Film names in PT-BR for the "most awarded" display
 export const filmNamesPtBr: Record<string, string> = {
+  // Main films (best_picture + acting/directing)
   bugonia: "Bugônia",
   f1: "F1",
   frankenstein: "Frankenstein",
@@ -311,26 +350,48 @@ export const filmNamesPtBr: Record<string, string> = {
   if_i_had_legs: "Se Eu Tivesse Pernas",
   song_sung_blue: "Canção Triste em Azul",
   weapons: "Armas",
+  // Animated feature
   arco: "Arco",
   elio: "Elio",
   kpop_demon_hunters: "KPop: Caçadores de Demônios",
   little_amelie: "A Pequena Amélie",
   zootopia_2: "Zootopia 2",
-  secret_agent_brazil: "O Agente Secreto",
-  it_was_just_accident_france: "Foi Só um Acidente",
-  sentimental_value_norway: "Valor Sentimental",
-  sirat_spain: "Sirāt",
-  voice_hind_rajab_tunisia: "A Voz de Hind Rajab",
+  // International feature
+  it_was_just_accident: "Foi Só um Acidente",
+  sirat: "Sirāt",
+  voice_hind_rajab: "A Voz de Hind Rajab",
+  // Documentary feature
   alabama_solution: "A Solução do Alabama",
   come_see_me_good_light: "Venha Me Ver na Boa Luz",
   cutting_through_rocks: "Cortando Pedras",
   mr_nobody_against_putin: "Sr. Ninguém contra Putin",
   perfect_neighbor: "O Vizinho Perfeito",
-  avatar: "Avatar: Fogo e Cinzas",
+  // Original song films
+  dear_me: "Relentless",
+  viva_verdi: "Viva Verdi!",
+  // Technical films
+  avatar_fire_and_ash: "Avatar: Fogo e Cinzas",
   jurassic_world_rebirth: "Jurassic World: Renascimento",
   lost_bus: "O Ônibus Perdido",
   kokuho: "Kokuho",
   smashing_machine: "A Máquina de Lutar",
   ugly_stepsister: "A Meia-Irmã Feia",
-  sirat: "Sirāt",
+  // Documentary shorts
+  all_empty_rooms: "Todos os Quartos Vazios",
+  armed_only_camera: "Armado Apenas com uma Câmera",
+  children_no_more: "Crianças Nunca Mais",
+  devil_is_busy: "O Diabo Está Ocupado",
+  perfectly_strangeness: "Perfeitamente Estranho",
+  // Live action shorts
+  butchers_stain: "A Mancha do Açougueiro",
+  friend_of_dorothy: "Um Amigo de Dorothy",
+  jane_austen_period_drama: "O Drama de Época de Jane Austen",
+  the_singers: "Os Cantores",
+  two_people_exchanging_saliva: "Duas Pessoas Trocando Saliva",
+  // Animated shorts
+  butterfly: "Borboleta",
+  forevergreen: "Sempre Verde",
+  girl_who_cried_pearls: "A Garota que Chorava Pérolas",
+  retirement_plan: "Plano de Aposentadoria",
+  three_sisters: "As Três Irmãs",
 };
