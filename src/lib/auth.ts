@@ -77,3 +77,23 @@ export async function getAllUsers(): Promise<User[]> {
 
   return users;
 }
+
+export async function deleteUser(userId: string): Promise<{ success: boolean; error?: string }> {
+  const kv = await getKV();
+
+  const user = await kv.get<User>(`user:${userId}`);
+  if (!user) {
+    return { success: false, error: "Usuário não encontrado." };
+  }
+
+  if (user.isAdmin) {
+    return { success: false, error: "Não é possível deletar um administrador." };
+  }
+
+  await kv.del(`user:${userId}`);
+  await kv.del(`user:email:${user.email}`);
+  await kv.srem("users:list", userId);
+  await kv.del(`votes:${userId}`);
+
+  return { success: true };
+}

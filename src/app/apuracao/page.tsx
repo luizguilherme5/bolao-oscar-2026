@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Toast from "@/components/Toast";
-import { Shield, Trophy, Check, ChevronDown, Home, Film, BarChart3, Crown, Minus } from "lucide-react";
+import { Shield, Trophy, Check, ChevronDown, Home, Film, BarChart3, Crown, Minus, Users, Trash2 } from "lucide-react";
 import { categories, nominees, categoryGroups } from "@/lib/data";
 import type { RankingEntry } from "@/app/api/ranking/route";
 
@@ -17,6 +17,8 @@ export default function ApuracaoPage() {
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [toast, setToast] = useState("");
   const [loading, setLoading] = useState(false);
+  const [users, setUsers] = useState<{ id: string; name: string; email: string; isAdmin: boolean; createdAt: string }[]>([]);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   // Check admin session
   useEffect(() => {
@@ -33,12 +35,14 @@ export default function ApuracaoPage() {
   }, []);
 
   const loadData = useCallback(async () => {
-    const [winnersRes, rankingRes] = await Promise.all([
+    const [winnersRes, rankingRes, usersRes] = await Promise.all([
       fetch("/api/winners").then((r) => r.json()),
       fetch("/api/ranking").then((r) => r.json()),
+      fetch("/api/users").then((r) => r.json()),
     ]);
     setWinners(winnersRes.winners || {});
     setRankings(rankingRes.rankings || []);
+    setUsers(usersRes.users || []);
   }, []);
 
   useEffect(() => {
@@ -88,6 +92,31 @@ export default function ApuracaoPage() {
       }
     } catch {
       setToast("Erro ao remover!");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/users", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        setToast(data.error);
+      } else {
+        setUsers(data.users);
+        setToast("Usuário removido!");
+        setConfirmDelete(null);
+        const rankingRes = await fetch("/api/ranking").then((r) => r.json());
+        setRankings(rankingRes.rankings || []);
+      }
+    } catch {
+      setToast("Erro ao remover usuário!");
     } finally {
       setLoading(false);
     }
@@ -210,6 +239,76 @@ export default function ApuracaoPage() {
             {rankings.length === 0 && (
               <p className="text-zinc-600 text-xs text-center py-3">
                 Nenhum participante ainda.
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* User management */}
+      <div className="px-4 pb-4 max-w-lg mx-auto">
+        <div className="card">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4 text-purple-400" />
+              <h3 className="font-semibold text-sm text-white">
+                Participantes
+              </h3>
+            </div>
+            <span className="text-zinc-500 text-xs">
+              {users.length} cadastrados
+            </span>
+          </div>
+          <div className="space-y-1">
+            {users
+              .sort((a, b) => a.name.localeCompare(b.name))
+              .map((user) => (
+              <div
+                key={user.id}
+                className="flex items-center gap-2.5 py-2 px-2 rounded-lg hover:bg-zinc-800/40 transition-colors group"
+              >
+                <span className="text-sm text-white flex-1 truncate">
+                  {user.name}
+                  {user.isAdmin && (
+                    <span className="ml-1.5 text-[10px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full">
+                      admin
+                    </span>
+                  )}
+                </span>
+                <span className="text-zinc-600 text-xs truncate max-w-[140px]">
+                  {user.email}
+                </span>
+                {!user.isAdmin && (
+                  confirmDelete === user.id ? (
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        onClick={() => handleDeleteUser(user.id)}
+                        disabled={loading}
+                        className="text-[10px] font-bold text-red-400 bg-red-500/10 border border-red-500/30 px-2 py-1 rounded-lg hover:bg-red-500/20 transition-colors"
+                      >
+                        Confirmar
+                      </button>
+                      <button
+                        onClick={() => setConfirmDelete(null)}
+                        className="text-[10px] font-medium text-zinc-500 px-2 py-1 rounded-lg hover:text-zinc-300 transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmDelete(user.id)}
+                      className="opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-red-400 transition-all shrink-0 p-1"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )
+                )}
+              </div>
+            ))}
+            {users.length === 0 && (
+              <p className="text-zinc-600 text-xs text-center py-3">
+                Nenhum usuário cadastrado.
               </p>
             )}
           </div>
