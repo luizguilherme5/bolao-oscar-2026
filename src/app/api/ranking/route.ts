@@ -5,6 +5,7 @@ import { categories, nominees, getNomineeFilmId, filmNamesPtBr } from "@/lib/dat
 import type { VoteData } from "@/app/api/votes/route";
 
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 
 export interface FilmAwardCount {
   filmId: string;

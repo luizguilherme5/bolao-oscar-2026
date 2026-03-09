@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { registerUser, loginUser } from "@/lib/auth";
 import { getSession } from "@/lib/session";
 
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
 export async function POST(request: NextRequest) {
   try {
     const { name, email, password, action } = await request.json();

@@ -3,6 +3,7 @@ import { getAllUsers, deleteUser } from "@/lib/auth";
 import { getSession } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 
 export async function GET() {
   try {

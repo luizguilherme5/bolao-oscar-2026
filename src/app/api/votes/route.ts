@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { getKV } from "@/lib/kv";
 
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
 export interface VoteData {
   [categoryId: string]: {
     willWin?: string;

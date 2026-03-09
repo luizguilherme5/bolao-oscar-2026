@@ -3,6 +3,7 @@ import { getSession } from "@/lib/session";
 import { getKV } from "@/lib/kv";
 
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 
 export async function GET() {
   try {
