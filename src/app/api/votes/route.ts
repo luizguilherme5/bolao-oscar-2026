@@ -21,7 +21,8 @@ export async function GET() {
 
     const kv = await getKV();
     const votes = await kv.get<VoteData>(`votes:${session.userId}`);
-    return NextResponse.json({ votes: votes || {} });
+    const votingLocked = (await kv.get<boolean>("voting:locked")) || false;
+    return NextResponse.json({ votes: votes || {}, votingLocked });
   } catch {
     return NextResponse.json({ error: "Erro ao buscar votos" }, { status: 500 });
   }
@@ -36,6 +37,12 @@ export async function POST(request: NextRequest) {
 
     const { votes } = await request.json();
     const kv = await getKV();
+
+    // Check if voting is locked
+    const votingLocked = (await kv.get<boolean>("voting:locked")) || false;
+    if (votingLocked) {
+      return NextResponse.json({ error: "Votação encerrada! Acompanhe no ranking." }, { status: 403 });
+    }
 
     // Merge with existing votes
     const existingVotes = (await kv.get<VoteData>(`votes:${session.userId}`)) || {};

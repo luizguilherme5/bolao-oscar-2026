@@ -184,14 +184,28 @@ export async function GET() {
     }
 
     const winnersCount = Object.keys(winners).length;
+    const votingLocked = (await kv.get<boolean>("voting:locked")) || false;
+    const celebration = (await kv.get<boolean>("ranking:celebration")) || false;
+
+    // If voting is still open, hide individual vote details
+    if (!votingLocked) {
+      for (const r of rankings) {
+        r.willWinDetails = {};
+        r.wantToWinDetails = {};
+        r.predictedTopFilms = [];
+        r.filmBonusDetails = [];
+      }
+    }
 
     return NextResponse.json({
       rankings,
-      winners,
-      actualTopFilms,
+      winners: votingLocked ? winners : {},
+      actualTopFilms: votingLocked ? actualTopFilms : [],
       totalCategories: categories.length,
       winnersCount,
       maxWillWinScore: 43, // 5 (best_picture) + 5*3 + 5*2 + 13*1
+      votingLocked,
+      celebration,
     });
   } catch (err) {
     console.error("Ranking error:", err);

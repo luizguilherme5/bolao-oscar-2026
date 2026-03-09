@@ -38,6 +38,7 @@ export default function VotarPage() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState("");
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const [votingLocked, setVotingLocked] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -50,25 +51,35 @@ export default function VotarPage() {
       }
       setUser(authData.user);
       setVotes(votesData.votes || {});
+      setVotingLocked(votesData.votingLocked || false);
       setLoading(false);
     });
   }, [router]);
 
   const saveVotes = useCallback(async (newVotes: VoteData) => {
+    if (votingLocked) {
+      setToast("Votação encerrada!");
+      return;
+    }
     setSaving(true);
     try {
-      await fetch("/api/votes", {
+      const res = await fetch("/api/votes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ votes: newVotes }),
       });
-      setToast("Salvo!");
+      const data = await res.json();
+      if (data.error) {
+        setToast(data.error);
+      } else {
+        setToast("Salvo!");
+      }
     } catch {
       setToast("Erro ao salvar!");
     } finally {
       setSaving(false);
     }
-  }, []);
+  }, [votingLocked]);
 
   const handleVote = useCallback(
     (categoryId: string, nomineeId: string, type: "willWin" | "wantToWin") => {
@@ -175,9 +186,25 @@ export default function VotarPage() {
             Fala, {user?.name}!
           </h1>
           <p className="text-zinc-500 text-sm">
-            Escolha seus palpites em cada categoria. Voce pode mudar depois!
+            {votingLocked
+              ? "A votação foi encerrada. Acompanhe a apuração no ranking!"
+              : "Escolha seus palpites em cada categoria. Voce pode mudar depois!"}
           </p>
         </motion.div>
+
+        {votingLocked && (
+          <motion.div
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-4 flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20"
+          >
+            <Shield className="w-5 h-5 text-red-400 shrink-0" />
+            <div>
+              <p className="text-red-400 text-sm font-semibold">Votação encerrada</p>
+              <p className="text-red-400/60 text-xs">Os palpites estão travados. Acompanhe a apuração ao vivo no ranking!</p>
+            </div>
+          </motion.div>
+        )}
       </div>
 
       {/* Categories by group */}

@@ -19,6 +19,8 @@ export default function ApuracaoPage() {
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState<{ id: string; name: string; email: string; isAdmin: boolean; createdAt: string }[]>([]);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [votingLocked, setVotingLocked] = useState(false);
+  const [celebration, setCelebration] = useState(false);
 
   // Check admin session
   useEffect(() => {
@@ -35,14 +37,17 @@ export default function ApuracaoPage() {
   }, []);
 
   const loadData = useCallback(async () => {
-    const [winnersRes, rankingRes, usersRes] = await Promise.all([
+    const [winnersRes, rankingRes, usersRes, adminRes] = await Promise.all([
       fetch("/api/winners").then((r) => r.json()),
       fetch("/api/ranking").then((r) => r.json()),
       fetch("/api/users").then((r) => r.json()),
+      fetch("/api/admin").then((r) => r.json()),
     ]);
     setWinners(winnersRes.winners || {});
     setRankings(rankingRes.rankings || []);
     setUsers(usersRes.users || []);
+    setVotingLocked(adminRes.votingLocked || false);
+    setCelebration(adminRes.celebration || false);
   }, []);
 
   useEffect(() => {
@@ -122,6 +127,50 @@ export default function ApuracaoPage() {
     }
   };
 
+  const handleToggleVoting = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ votingLocked: !votingLocked }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        setToast(data.error);
+      } else {
+        setVotingLocked(data.votingLocked);
+        setToast(data.votingLocked ? "Votação encerrada!" : "Votação aberta!");
+      }
+    } catch {
+      setToast("Erro!");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleCelebration = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ celebration: !celebration }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        setToast(data.error);
+      } else {
+        setCelebration(data.celebration);
+        setToast(data.celebration ? "Celebração ativada!" : "Celebração desativada!");
+      }
+    } catch {
+      setToast("Erro!");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const winnersCount = Object.keys(winners).length;
 
   // Loading state
@@ -194,6 +243,91 @@ export default function ApuracaoPage() {
             animate={{ width: `${(winnersCount / 24) * 100}%` }}
             transition={{ duration: 0.6, ease: "easeOut" }}
           />
+        </div>
+      </div>
+
+      {/* Admin controls */}
+      <div className="px-4 pt-4 max-w-lg mx-auto">
+        <div className="card">
+          <div className="flex items-center gap-2 mb-3">
+            <Shield className="w-4 h-4 text-amber-400" />
+            <h3 className="font-semibold text-sm text-white">Controles</h3>
+          </div>
+          <div className="space-y-2">
+            {/* Voting lock toggle */}
+            <button
+              onClick={handleToggleVoting}
+              disabled={loading}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all active:scale-[0.98] ${
+                votingLocked
+                  ? "bg-red-500/10 border-red-500/30 text-red-400"
+                  : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+              }`}
+            >
+              <Shield className="w-4 h-4 shrink-0" />
+              <div className="flex-1 text-left">
+                <p className="text-sm font-semibold">
+                  {votingLocked ? "Votação Encerrada" : "Votação Aberta"}
+                </p>
+                <p className="text-[11px] opacity-60">
+                  {votingLocked
+                    ? "Palpites visíveis · Clique para reabrir"
+                    : "Palpites secretos · Clique para encerrar"}
+                </p>
+              </div>
+              <div
+                className={`w-10 h-6 rounded-full relative transition-colors ${
+                  votingLocked ? "bg-red-500/30" : "bg-emerald-500/30"
+                }`}
+              >
+                <div
+                  className={`absolute top-1 w-4 h-4 rounded-full transition-all ${
+                    votingLocked
+                      ? "right-1 bg-red-400"
+                      : "left-1 bg-emerald-400"
+                  }`}
+                />
+              </div>
+            </button>
+
+            {/* Celebration toggle */}
+            <button
+              onClick={handleToggleCelebration}
+              disabled={loading || winnersCount < 24}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all active:scale-[0.98] ${
+                celebration
+                  ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
+                  : "bg-zinc-800/40 border-zinc-800 text-zinc-500"
+              } ${winnersCount < 24 ? "opacity-40 cursor-not-allowed" : ""}`}
+            >
+              <Trophy className="w-4 h-4 shrink-0" />
+              <div className="flex-1 text-left">
+                <p className="text-sm font-semibold">
+                  {celebration ? "Celebração Ativa" : "Celebração"}
+                </p>
+                <p className="text-[11px] opacity-60">
+                  {winnersCount < 24
+                    ? "Disponível quando todas as categorias forem apuradas"
+                    : celebration
+                    ? "Confetes e banner do campeão · Clique para desativar"
+                    : "Ativar confetes e banner do campeão"}
+                </p>
+              </div>
+              <div
+                className={`w-10 h-6 rounded-full relative transition-colors ${
+                  celebration ? "bg-amber-500/30" : "bg-zinc-700"
+                }`}
+              >
+                <div
+                  className={`absolute top-1 w-4 h-4 rounded-full transition-all ${
+                    celebration
+                      ? "right-1 bg-amber-400"
+                      : "left-1 bg-zinc-600"
+                  }`}
+                />
+              </div>
+            </button>
+          </div>
         </div>
       </div>
 

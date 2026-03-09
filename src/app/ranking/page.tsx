@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
@@ -21,9 +21,12 @@ import {
   ArrowDownRight,
   Minus,
   GitCompareArrows,
+  Crown,
+  Lock,
 } from "lucide-react";
 import { categories, nominees, groupInfo } from "@/lib/data";
 import type { RankingEntry, FilmAwardCount } from "@/app/api/ranking/route";
+import Confetti from "@/components/Confetti";
 
 export default function RankingPage() {
   const [rankings, setRankings] = useState<RankingEntry[]>([]);
@@ -36,22 +39,54 @@ export default function RankingPage() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [votingLocked, setVotingLocked] = useState(false);
+  const [celebration, setCelebration] = useState(false);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const fetchRanking = useCallback(async () => {
+    const data = await fetch("/api/ranking").then((r) => r.json());
+    setRankings(data.rankings || []);
+    setWinners(data.winners || {});
+    setWinnersCount(data.winnersCount || 0);
+    setMaxWillWinScore(data.maxWillWinScore || 43);
+    setActualTopFilms(data.actualTopFilms || []);
+    setVotingLocked(data.votingLocked || false);
+    setCelebration(data.celebration || false);
+    return data;
+  }, []);
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/ranking").then((r) => r.json()),
+      fetchRanking(),
       fetch("/api/auth").then((r) => r.json()),
-    ]).then(([rankingData, authData]) => {
-      setRankings(rankingData.rankings || []);
-      setWinners(rankingData.winners || {});
-      setWinnersCount(rankingData.winnersCount || 0);
-      setMaxWillWinScore(rankingData.maxWillWinScore || 43);
-      setActualTopFilms(rankingData.actualTopFilms || []);
+    ]).then(([, authData]) => {
       setIsAdmin(authData.user?.isAdmin || false);
       setCurrentUserId(authData.user?.id || null);
       setLoading(false);
     });
-  }, []);
+  }, [fetchRanking]);
+
+  // Polling: every 10s when apuração is active (has winners but not all done)
+  useEffect(() => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+
+    const isActive = winnersCount > 0 && winnersCount < 24;
+    if (isActive) {
+      pollingRef.current = setInterval(() => {
+        fetchRanking();
+      }, 10000);
+    }
+
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+    };
+  }, [winnersCount, fetchRanking]);
 
   const hasWinners = winnersCount > 0;
 
@@ -79,6 +114,9 @@ export default function RankingPage() {
 
   return (
     <main className="min-h-screen pb-24 bg-zinc-950">
+      {/* Celebration confetti */}
+      {celebration && <Confetti count={50} />}
+
       {/* Header */}
       <div className="sticky top-0 z-30 bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-800/60">
         <div className="px-4 py-4 max-w-lg mx-auto">
@@ -94,7 +132,13 @@ export default function RankingPage() {
                 {winnersCount} de 24 apuradas
               </p>
             </div>
-            {hasWinners && (
+            {!votingLocked && (
+              <div className="badge" style={{ background: "rgba(113,113,122,0.15)", border: "1px solid rgba(113,113,122,0.3)" }}>
+                <Lock className="w-3 h-3 mr-1 text-zinc-400" />
+                <span className="text-zinc-400 text-[11px] font-semibold">Palpites secretos</span>
+              </div>
+            )}
+            {hasWinners && votingLocked && (
               <div className="badge badge-gold">
                 <TrendingUp className="w-3 h-3 mr-1" />
                 Ao vivo
@@ -116,9 +160,37 @@ export default function RankingPage() {
         </div>
       </div>
 
+      {/* Celebration champion banner */}
+      {celebration && rankings.length > 0 && (
+        <div className="px-4 pt-4 max-w-lg mx-auto">
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", damping: 12 }}
+            className="card overflow-hidden bg-gradient-to-br from-amber-500/10 via-yellow-500/5 to-amber-600/10 border-amber-500/30"
+          >
+            <div className="px-6 py-5 text-center">
+              <Crown className="w-10 h-10 text-amber-400 mx-auto mb-2" />
+              <p className="text-amber-400/70 text-xs font-semibold uppercase tracking-wider mb-1">
+                Campeão do Bolão
+              </p>
+              <p className="text-2xl font-extrabold text-amber-400">
+                {rankings[0].name}
+              </p>
+              <p className="text-amber-400/60 text-sm font-bold mt-1 tabular-nums">
+                {rankings[0].totalScore % 1 === 0
+                  ? rankings[0].totalScore
+                  : rankings[0].totalScore.toFixed(1)}{" "}
+                pontos
+              </p>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
       {/* Compare View */}
       <AnimatePresence>
-        {compareUserId && currentUserEntry && compareEntry && (
+        {votingLocked && compareUserId && currentUserEntry && compareEntry && (
           <CompareView
             currentUser={currentUserEntry}
             otherUser={compareEntry}
@@ -175,9 +247,11 @@ export default function RankingPage() {
               >
                 <button
                   onClick={() =>
-                    setExpandedUser(isExpanded ? null : entry.userId)
+                    votingLocked
+                      ? setExpandedUser(isExpanded ? null : entry.userId)
+                      : null
                   }
-                  className={`w-full card overflow-hidden text-left transition-all active:scale-[0.99] ${
+                  className={`w-full card overflow-hidden text-left transition-all ${votingLocked ? "active:scale-[0.99]" : "cursor-default"} ${
                     isCurrentUser
                       ? "border-amber-500/40 bg-amber-500/[0.03]"
                       : position <= 3 && hasWinners
@@ -223,7 +297,7 @@ export default function RankingPage() {
                           </span>
                         )}
                       </div>
-                      {hasWinners ? (
+                      {hasWinners && votingLocked ? (
                         <p className="text-zinc-500 text-[11px] mt-0.5 truncate">
                           {breakdownText}
                         </p>
@@ -235,7 +309,7 @@ export default function RankingPage() {
                     </div>
 
                     {/* Position delta arrow */}
-                    {hasWinners && positionDelta !== null && positionDelta !== 0 && (
+                    {hasWinners && positionDelta !== null && (
                       <div className="shrink-0 flex items-center gap-0.5">
                         {positionDelta > 0 ? (
                           <>
@@ -244,51 +318,55 @@ export default function RankingPage() {
                               {positionDelta}
                             </span>
                           </>
-                        ) : (
+                        ) : positionDelta < 0 ? (
                           <>
                             <ArrowDownRight className="w-3.5 h-3.5 text-red-400" />
                             <span className="text-[10px] font-bold text-red-400 tabular-nums">
                               {Math.abs(positionDelta)}
                             </span>
                           </>
+                        ) : (
+                          <Minus className="w-3.5 h-3.5 text-blue-400" />
                         )}
                       </div>
                     )}
 
                     {/* Total Score */}
                     <div className="text-right shrink-0 mr-1">
-                      {hasWinners ? (
-                        <p
-                          className={`font-extrabold text-xl tabular-nums ${
-                            position === 1
-                              ? "text-amber-400"
-                              : position <= 3
-                              ? "text-zinc-100"
-                              : "text-zinc-300"
-                          }`}
-                        >
-                          {entry.totalScore % 1 === 0
-                            ? entry.totalScore
-                            : entry.totalScore.toFixed(1)}
-                        </p>
+                      {hasWinners && votingLocked ? (
+                        <>
+                          <p
+                            className={`font-extrabold text-xl tabular-nums ${
+                              position === 1
+                                ? "text-amber-400"
+                                : position <= 3
+                                ? "text-zinc-100"
+                                : "text-zinc-300"
+                            }`}
+                          >
+                            {entry.totalScore % 1 === 0
+                              ? entry.totalScore
+                              : entry.totalScore.toFixed(1)}
+                          </p>
+                          <p className="text-zinc-600 text-[10px] font-medium">
+                            pts
+                          </p>
+                        </>
                       ) : (
                         <p className="text-zinc-600 font-bold text-lg">-</p>
-                      )}
-                      {hasWinners && (
-                        <p className="text-zinc-600 text-[10px] font-medium">
-                          pts
-                        </p>
                       )}
                     </div>
 
                     {/* Chevron */}
-                    <motion.div
-                      animate={{ rotate: isExpanded ? 180 : 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="shrink-0"
-                    >
-                      <ChevronDown className="w-4 h-4 text-zinc-600" />
-                    </motion.div>
+                    {votingLocked && (
+                      <motion.div
+                        animate={{ rotate: isExpanded ? 180 : 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="shrink-0"
+                      >
+                        <ChevronDown className="w-4 h-4 text-zinc-600" />
+                      </motion.div>
+                    )}
                   </div>
                 </button>
 
