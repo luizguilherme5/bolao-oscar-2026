@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { registerUser, loginUser, createSession, getCurrentUser, destroySession } from "@/lib/auth";
+import { registerUser, loginUser } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,11 +16,17 @@ export async function POST(request: NextRequest) {
       }
 
       const { user, error } = await registerUser(name, email, password);
-      if (error) {
+      if (error || !user) {
         return NextResponse.json({ error }, { status: 400 });
       }
 
-      await createSession(user.id);
+      const session = await getSession();
+      session.userId = user.id;
+      session.userName = user.name;
+      session.userEmail = user.email;
+      session.isLoggedIn = true;
+      await session.save();
+
       return NextResponse.json({
         user: { id: user.id, name: user.name, email: user.email },
       });
@@ -31,23 +38,36 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error || "Erro ao fazer login" }, { status: 401 });
     }
 
-    await createSession(user.id);
+    const session = await getSession();
+    session.userId = user.id;
+    session.userName = user.name;
+    session.userEmail = user.email;
+    session.isLoggedIn = true;
+    await session.save();
+
     return NextResponse.json({
       user: { id: user.id, name: user.name, email: user.email },
     });
-  } catch {
+  } catch (err) {
+    console.error("Auth error:", err);
     return NextResponse.json({ error: "Erro interno do servidor" }, { status: 500 });
   }
 }
 
 export async function GET() {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
+    const session = await getSession();
+
+    if (!session.isLoggedIn || !session.userId) {
       return NextResponse.json({ user: null });
     }
+
     return NextResponse.json({
-      user: { id: user.id, name: user.name, email: user.email },
+      user: {
+        id: session.userId,
+        name: session.userName,
+        email: session.userEmail,
+      },
     });
   } catch {
     return NextResponse.json({ user: null });
@@ -56,7 +76,8 @@ export async function GET() {
 
 export async function DELETE() {
   try {
-    await destroySession();
+    const session = await getSession();
+    session.destroy();
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json({ error: "Erro ao sair" }, { status: 500 });
