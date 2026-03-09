@@ -21,7 +21,7 @@ export const groupInfo = {
 } as const;
 
 export const categories: Category[] = [
-  { id: "best_picture", name: "Melhor Filme", group: "BIG_SIX", order: 1, icon: "clapperboard", points: 3 },
+  { id: "best_picture", name: "Melhor Filme", group: "BIG_SIX", order: 1, icon: "clapperboard", points: 5 },
   { id: "directing", name: "Direção", group: "BIG_SIX", order: 2, icon: "megaphone", points: 3 },
   { id: "actor_leading", name: "Ator em Papel Principal", group: "BIG_SIX", order: 3, icon: "user", points: 3 },
   { id: "actress_leading", name: "Atriz em Papel Principal", group: "BIG_SIX", order: 4, icon: "user", points: 3 },
@@ -48,7 +48,7 @@ export const categories: Category[] = [
 ];
 
 export const categoryGroups = [
-  { id: "BIG_SIX" as const, name: "As Grandes", description: "3 pontos por acerto", points: 3 },
+  { id: "BIG_SIX" as const, name: "As Grandes", description: "3 pts (Melhor Filme = 5)", points: 3 },
   { id: "MAJOR" as const, name: "Principais", description: "2 pontos por acerto", points: 2 },
   { id: "TECHNICAL" as const, name: "Técnicas", description: "1 ponto por acerto", points: 1 },
 ];

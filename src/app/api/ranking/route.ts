@@ -180,7 +180,7 @@ export async function GET() {
       actualTopFilms,
       totalCategories: categories.length,
       winnersCount,
-      maxWillWinScore: 41, // 6*3 + 5*2 + 13*1
+      maxWillWinScore: 43, // 5 (best_picture) + 5*3 + 5*2 + 13*1
     });
   } catch (err) {
     console.error("Ranking error:", err);

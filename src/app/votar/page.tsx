@@ -250,8 +250,13 @@ export default function VotarPage() {
                           {getCategoryIcon(category.icon)}
                         </span>
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-zinc-200 text-sm truncate">
+                          <p className="font-semibold text-zinc-200 text-sm truncate flex items-center gap-1.5">
                             {category.name}
+                            {category.points !== group.points && (
+                              <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                                {category.points} pts
+                              </span>
+                            )}
                           </p>
                           {!isExpanded && categoryVotes.willWin && (
                             <p className="text-zinc-500 text-xs truncate mt-0.5 flex items-center gap-1.5">
