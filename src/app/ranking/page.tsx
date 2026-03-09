@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
@@ -8,6 +8,7 @@ import {
   Check,
   X,
   ChevronDown,
+  ChevronUp,
   Medal,
   Award,
   Home,
@@ -16,6 +17,10 @@ import {
   Shield,
   Star,
   TrendingUp,
+  ArrowUpRight,
+  ArrowDownRight,
+  Minus,
+  GitCompareArrows,
 } from "lucide-react";
 import { categories, nominees, groupInfo } from "@/lib/data";
 import type { RankingEntry, FilmAwardCount } from "@/app/api/ranking/route";
@@ -24,9 +29,11 @@ export default function RankingPage() {
   const [rankings, setRankings] = useState<RankingEntry[]>([]);
   const [winners, setWinners] = useState<Record<string, string>>({});
   const [winnersCount, setWinnersCount] = useState(0);
-  const [maxWillWinScore, setMaxWillWinScore] = useState(41);
+  const [maxWillWinScore, setMaxWillWinScore] = useState(43);
   const [actualTopFilms, setActualTopFilms] = useState<FilmAwardCount[]>([]);
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
+  const [compareUserId, setCompareUserId] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -38,14 +45,24 @@ export default function RankingPage() {
       setRankings(rankingData.rankings || []);
       setWinners(rankingData.winners || {});
       setWinnersCount(rankingData.winnersCount || 0);
-      setMaxWillWinScore(rankingData.maxWillWinScore || 41);
+      setMaxWillWinScore(rankingData.maxWillWinScore || 43);
       setActualTopFilms(rankingData.actualTopFilms || []);
       setIsAdmin(authData.user?.isAdmin || false);
+      setCurrentUserId(authData.user?.id || null);
       setLoading(false);
     });
   }, []);
 
   const hasWinners = winnersCount > 0;
+
+  const currentUserEntry = useMemo(
+    () => rankings.find((r) => r.userId === currentUserId),
+    [rankings, currentUserId]
+  );
+  const compareEntry = useMemo(
+    () => rankings.find((r) => r.userId === compareUserId),
+    [rankings, compareUserId]
+  );
 
   if (loading) {
     return (
@@ -99,6 +116,18 @@ export default function RankingPage() {
         </div>
       </div>
 
+      {/* Compare View */}
+      <AnimatePresence>
+        {compareUserId && currentUserEntry && compareEntry && (
+          <CompareView
+            currentUser={currentUserEntry}
+            otherUser={compareEntry}
+            winners={winners}
+            onClose={() => setCompareUserId(null)}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Ranking List */}
       <div className="px-4 pt-4 max-w-lg mx-auto space-y-2">
         {rankings.length === 0 ? (
@@ -116,7 +145,13 @@ export default function RankingPage() {
         ) : (
           rankings.map((entry, index) => {
             const position = index + 1;
-            const isExpanded = expandedUser === entry.userId;
+            const isExpanded =
+              expandedUser === entry.userId && compareUserId === null;
+            const isCurrentUser = entry.userId === currentUserId;
+            const positionDelta =
+              entry.previousPosition !== null
+                ? entry.previousPosition - position
+                : null;
 
             // Score breakdown for subtitle
             const willWinLabel = `${entry.willWinScore} acertos`;
@@ -143,7 +178,9 @@ export default function RankingPage() {
                     setExpandedUser(isExpanded ? null : entry.userId)
                   }
                   className={`w-full card overflow-hidden text-left transition-all active:scale-[0.99] ${
-                    position <= 3 && hasWinners
+                    isCurrentUser
+                      ? "border-amber-500/40 bg-amber-500/[0.03]"
+                      : position <= 3 && hasWinners
                       ? "border-amber-500/20"
                       : ""
                   }`}
@@ -172,9 +209,20 @@ export default function RankingPage() {
 
                     {/* Name + breakdown */}
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-zinc-100 truncate text-sm">
-                        {entry.name}
-                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <p
+                          className={`font-bold truncate text-sm ${
+                            isCurrentUser ? "text-amber-400" : "text-zinc-100"
+                          }`}
+                        >
+                          {entry.name}
+                        </p>
+                        {isCurrentUser && (
+                          <span className="text-[9px] font-bold text-amber-500/70 bg-amber-500/10 px-1.5 py-0.5 rounded-full shrink-0">
+                            Você
+                          </span>
+                        )}
+                      </div>
                       {hasWinners ? (
                         <p className="text-zinc-500 text-[11px] mt-0.5 truncate">
                           {breakdownText}
@@ -185,6 +233,27 @@ export default function RankingPage() {
                         </p>
                       )}
                     </div>
+
+                    {/* Position delta arrow */}
+                    {hasWinners && positionDelta !== null && positionDelta !== 0 && (
+                      <div className="shrink-0 flex items-center gap-0.5">
+                        {positionDelta > 0 ? (
+                          <>
+                            <ArrowUpRight className="w-3.5 h-3.5 text-emerald-400" />
+                            <span className="text-[10px] font-bold text-emerald-400 tabular-nums">
+                              {positionDelta}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <ArrowDownRight className="w-3.5 h-3.5 text-red-400" />
+                            <span className="text-[10px] font-bold text-red-400 tabular-nums">
+                              {Math.abs(positionDelta)}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    )}
 
                     {/* Total Score */}
                     <div className="text-right shrink-0 mr-1">
@@ -234,6 +303,23 @@ export default function RankingPage() {
                       className="overflow-hidden"
                     >
                       <div className="card -mt-[1px] rounded-t-none border-t-0 px-4 pb-4 pt-3">
+                        {/* Compare button */}
+                        {currentUserId &&
+                          !isCurrentUser &&
+                          currentUserEntry && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCompareUserId(entry.userId);
+                                setExpandedUser(null);
+                              }}
+                              className="w-full mb-3 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-semibold hover:bg-purple-500/15 transition-colors active:scale-[0.98]"
+                            >
+                              <GitCompareArrows className="w-4 h-4" />
+                              Comparar comigo
+                            </button>
+                          )}
+
                         {/* Score summary badges */}
                         {hasWinners && (
                           <div className="flex flex-wrap gap-1.5 mb-3">
@@ -271,7 +357,10 @@ export default function RankingPage() {
                                     {info.name}
                                   </span>
                                   <span className="text-[10px] text-zinc-600">
-                                    ({info.points}pt)
+                                    ({info.points}pt
+                                    {groupId === "BIG_SIX" &&
+                                      " · Melhor Filme = 5pt"}
+                                    )
                                   </span>
                                 </div>
 
@@ -312,7 +401,9 @@ export default function RankingPage() {
                                           {cat.name}
                                         </span>
                                         <span className="text-[11px] text-zinc-300 flex-1 truncate">
-                                          {pickedNominee?.name || "--"}
+                                          {pickedNominee?.namePtBr ||
+                                            pickedNominee?.name ||
+                                            "--"}
                                         </span>
                                         {detail.correct === true && (
                                           <div className="w-4 h-4 rounded-full bg-green-500/15 flex items-center justify-center shrink-0">
@@ -379,14 +470,16 @@ export default function RankingPage() {
                                       Top 5 +1
                                     </span>
                                   )}
-                                  {fb.bonus === 0 && fb.actualPos === null && (
-                                    <span className="text-zinc-600">--</span>
-                                  )}
-                                  {fb.bonus === 0 && fb.actualPos !== null && (
-                                    <span className="text-zinc-600">
-                                      <X className="w-3 h-3 inline" />
-                                    </span>
-                                  )}
+                                  {fb.bonus === 0 &&
+                                    fb.actualPos === null && (
+                                      <span className="text-zinc-600">--</span>
+                                    )}
+                                  {fb.bonus === 0 &&
+                                    fb.actualPos !== null && (
+                                      <span className="text-zinc-600">
+                                        <X className="w-3 h-3 inline" />
+                                      </span>
+                                    )}
                                 </div>
                               ))}
                             </div>
@@ -478,5 +571,197 @@ export default function RankingPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+/* ─── Compare View ─── */
+
+function CompareView({
+  currentUser,
+  otherUser,
+  winners,
+  onClose,
+}: {
+  currentUser: RankingEntry;
+  otherUser: RankingEntry;
+  winners: Record<string, string>;
+  onClose: () => void;
+}) {
+  const hasWinners = Object.keys(winners).length > 0;
+
+  // Count matches/differences
+  const stats = useMemo(() => {
+    let same = 0;
+    let different = 0;
+    let total = 0;
+    for (const cat of categories) {
+      const myPick = currentUser.willWinDetails[cat.id]?.picked;
+      const theirPick = otherUser.willWinDetails[cat.id]?.picked;
+      if (myPick && theirPick) {
+        total++;
+        if (myPick === theirPick) same++;
+        else different++;
+      }
+    }
+    return { same, different, total };
+  }, [currentUser, otherUser]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      className="px-4 pt-4 max-w-lg mx-auto"
+    >
+      <div className="card overflow-hidden">
+        {/* Compare header */}
+        <div className="px-4 py-3 border-b border-zinc-800/60 flex items-center gap-3">
+          <GitCompareArrows className="w-5 h-5 text-purple-400 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-zinc-100">Comparação</p>
+            <p className="text-[11px] text-zinc-500">
+              {stats.same} iguais · {stats.different} diferentes de{" "}
+              {stats.total}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg bg-zinc-800/60 flex items-center justify-center hover:bg-zinc-700/60 transition-colors"
+          >
+            <X className="w-4 h-4 text-zinc-400" />
+          </button>
+        </div>
+
+        {/* Column headers */}
+        <div className="px-4 py-2 flex items-center border-b border-zinc-800/40 bg-zinc-900/30">
+          <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-wider flex-1">
+            Categoria
+          </span>
+          <span className="text-[10px] font-bold text-amber-500 uppercase tracking-wider w-[110px] text-center truncate">
+            {currentUser.name}
+          </span>
+          <span className="w-5" />
+          <span className="text-[10px] font-bold text-purple-400 uppercase tracking-wider w-[110px] text-center truncate">
+            {otherUser.name}
+          </span>
+        </div>
+
+        {/* Category rows grouped */}
+        <div className="max-h-[60vh] overflow-y-auto">
+          {(["BIG_SIX", "MAJOR", "TECHNICAL"] as const).map((groupId) => {
+            const groupCats = categories.filter((c) => c.group === groupId);
+            const info = groupInfo[groupId];
+
+            return (
+              <div key={groupId}>
+                <div className="px-4 py-1.5 bg-zinc-900/50 border-y border-zinc-800/30">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                    {info.name}
+                  </span>
+                </div>
+
+                {groupCats.map((cat) => {
+                  const myDetail = currentUser.willWinDetails[cat.id];
+                  const theirDetail = otherUser.willWinDetails[cat.id];
+                  const nomineeList = nominees[cat.id] || [];
+                  const winner = winners[cat.id];
+
+                  const myNominee = nomineeList.find(
+                    (n) => n.id === myDetail?.picked
+                  );
+                  const theirNominee = nomineeList.find(
+                    (n) => n.id === theirDetail?.picked
+                  );
+                  const samePick =
+                    myDetail?.picked &&
+                    theirDetail?.picked &&
+                    myDetail.picked === theirDetail.picked;
+
+                  return (
+                    <div
+                      key={cat.id}
+                      className={`px-4 py-2 flex items-center border-b border-zinc-800/20 ${
+                        samePick ? "bg-emerald-500/[0.03]" : ""
+                      }`}
+                    >
+                      <span className="text-[10px] text-zinc-500 flex-1 truncate pr-2">
+                        {cat.name}
+                      </span>
+                      <div className="w-[110px] flex items-center justify-center gap-1">
+                        <span
+                          className={`text-[10px] truncate text-center ${
+                            myDetail?.correct === true
+                              ? "text-emerald-400 font-bold"
+                              : myDetail?.correct === false
+                              ? "text-red-400"
+                              : "text-zinc-300"
+                          }`}
+                        >
+                          {myNominee?.namePtBr || "--"}
+                        </span>
+                        {myDetail?.correct === true && (
+                          <Check className="w-3 h-3 text-emerald-400 shrink-0" />
+                        )}
+                        {myDetail?.correct === false && (
+                          <X className="w-3 h-3 text-red-400 shrink-0" />
+                        )}
+                      </div>
+                      <div className="w-5 flex items-center justify-center">
+                        {samePick ? (
+                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                        ) : (
+                          <div className="w-1.5 h-1.5 rounded-full bg-zinc-700" />
+                        )}
+                      </div>
+                      <div className="w-[110px] flex items-center justify-center gap-1">
+                        <span
+                          className={`text-[10px] truncate text-center ${
+                            theirDetail?.correct === true
+                              ? "text-emerald-400 font-bold"
+                              : theirDetail?.correct === false
+                              ? "text-red-400"
+                              : "text-zinc-300"
+                          }`}
+                        >
+                          {theirNominee?.namePtBr || "--"}
+                        </span>
+                        {theirDetail?.correct === true && (
+                          <Check className="w-3 h-3 text-emerald-400 shrink-0" />
+                        )}
+                        {theirDetail?.correct === false && (
+                          <X className="w-3 h-3 text-red-400 shrink-0" />
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Score comparison footer */}
+        {hasWinners && (
+          <div className="px-4 py-3 border-t border-zinc-800/60 flex items-center bg-zinc-900/30">
+            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider flex-1">
+              Total
+            </span>
+            <span className="text-sm font-extrabold text-amber-400 w-[110px] text-center tabular-nums">
+              {currentUser.totalScore % 1 === 0
+                ? currentUser.totalScore
+                : currentUser.totalScore.toFixed(1)}
+            </span>
+            <span className="w-5 text-center text-[10px] text-zinc-600">
+              vs
+            </span>
+            <span className="text-sm font-extrabold text-purple-400 w-[110px] text-center tabular-nums">
+              {otherUser.totalScore % 1 === 0
+                ? otherUser.totalScore
+                : otherUser.totalScore.toFixed(1)}
+            </span>
+          </div>
+        )}
+      </div>
+    </motion.div>
   );
 }

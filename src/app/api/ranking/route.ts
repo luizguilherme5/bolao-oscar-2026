@@ -31,6 +31,8 @@ export interface RankingEntry {
   predictedTopFilms: FilmAwardCount[];
   filmBonusDetails: Array<{ filmId: string; filmName: string; predictedPos: number; actualPos: number | null; bonus: number }>;
   lastUpdated: string;
+  // Position tracking
+  previousPosition: number | null;
 }
 
 function computeFilmAwards(votes: VoteData, useWillWin: boolean): FilmAwardCount[] {
@@ -164,6 +166,7 @@ export async function GET() {
         predictedTopFilms,
         filmBonusDetails,
         lastUpdated,
+        previousPosition: null,
       });
     }
 
@@ -172,6 +175,13 @@ export async function GET() {
       if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore;
       return new Date(a.lastUpdated).getTime() - new Date(b.lastUpdated).getTime();
     });
+
+    // Load previous position snapshot and attach to rankings
+    const prevPositions = (await kv.get<Record<string, number>>("ranking:positions")) || {};
+    for (let i = 0; i < rankings.length; i++) {
+      const prev = prevPositions[rankings[i].userId];
+      rankings[i].previousPosition = prev !== undefined ? prev : null;
+    }
 
     const winnersCount = Object.keys(winners).length;
 
