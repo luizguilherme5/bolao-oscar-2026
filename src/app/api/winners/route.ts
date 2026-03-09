@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { isAdminPassword } from "@/lib/auth";
 import { getKV } from "@/lib/kv";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const kv = await getKV();

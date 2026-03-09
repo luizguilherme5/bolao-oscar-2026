@@ -4,6 +4,8 @@ import { getKV } from "@/lib/kv";
 import { categories } from "@/lib/data";
 import type { VoteData } from "@/app/api/votes/route";
 
+export const dynamic = "force-dynamic";
+
 export interface RankingEntry {
   userId: string;
   name: string;
